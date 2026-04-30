@@ -1,0 +1,25 @@
+node_modules
+.next
+.vercel
+out
+build
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+*.log
+.DS_Store
+.idea
+.vscode
+Thumbs.db
+
+# Local-only originals (kept out of the repo; assets the app needs are copied to public/)
+samples/_originals/
+preview.html
+
+# Smoke-test artefacts
+tmp/
+*.pdf
+!docs/**/*.pdf

@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --utt-green: #2f6b3d;
+  --utt-gold: #c9a227;
+  --utt-beige: #fbf7ee;
+}
+
+html,
+body {
+  background: #f4f1e8;
+  color: #1a1a1a;
+}
