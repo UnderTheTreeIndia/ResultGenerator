@@ -80,19 +80,11 @@ export function renderCertificateHtml(p: CertificateProps): string {
 @page { size: A4; margin: 0; }
 html, body { margin: 0; padding: 0; background: #FBF7EE; font-family: Georgia, 'Times New Roman', serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .page { width: 210mm; height: 297mm; background: #FBF7EE; color: #2A2A2A; position: relative; overflow: hidden; }
-.page::before {
-  content: ""; position: absolute; inset: 0;
-  background-image: url("${logoUrl}");
-  background-repeat: no-repeat; background-position: center 52%;
-  background-size: 62% auto; opacity: 0.18;
-  mix-blend-mode: multiply;
-  pointer-events: none; z-index: 0;
-}
 .border-outer { position: absolute; inset: 8mm; border: 2px solid #2F6B3D; border-radius: 2mm; z-index: 1; }
 .border-inner { position: absolute; inset: 12mm; border: 1px solid #C9A227; border-radius: 1mm; z-index: 1; }
 .content { position: absolute; inset: 18mm; display: flex; flex-direction: column; z-index: 2; }
 .header { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.logo { width: 26mm; height: 26mm; object-fit: contain; mix-blend-mode: multiply; }
+.logo { width: 26mm; height: 26mm; object-fit: contain; }
 .title { font-size: 26pt; font-weight: 700; color: #2F6B3D; letter-spacing: 0.5px; margin-top: 4mm; }
 .subtitle { font-size: 11pt; font-style: italic; color: #555; }
 .ornament { margin: 5mm auto 3mm; width: 70%; text-align: center; color: #C9A227; font-size: 12pt; }
@@ -111,7 +103,7 @@ table.subjects th.r, table.subjects td.r { text-align: right; }
 .remarks .en { font-style: italic; color: #2A2A2A; }
 .remarks .hi { color: #2A2A2A; margin-top: 2mm; font-family: 'Noto Serif Devanagari', 'Mangal', Georgia, serif; }
 .footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 4mm; }
-.cert-id { font-family: 'Courier New', monospace; font-size: 10pt; color: #555; letter-spacing: 1px; }
+.cert-id { font-family: 'Courier New', monospace; font-size: 9pt; color: #555; letter-spacing: 0.3px; max-width: 90mm; word-break: break-all; }
 .cert-id-label { font-size: 8pt; text-transform: uppercase; letter-spacing: 2px; color: #888; display: block; margin-bottom: 2px; }
 .signature { text-align: center; }
 .signature img { height: 16mm; object-fit: contain; }
