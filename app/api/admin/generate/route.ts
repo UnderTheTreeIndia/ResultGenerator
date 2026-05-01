@@ -51,30 +51,48 @@ interface FailureRecord {
 }
 
 export async function POST(req: Request) {
-  const env = getEnv();
-  const body = await req.json().catch(() => null);
-  const parsed = BodySchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: "Invalid request body",
-        issues: parsed.error.issues.map((i) => ({
-          path: i.path.join("."),
-          message: i.message,
-        })),
-      },
-      { status: 400 },
-    );
-  }
-  const { batch_id, rows } = parsed.data;
-
-  const supabase = getAdminClient();
-  const handle = await launchBrowser();
-  const generated: SuccessRecord[] = [];
-  const failures: FailureRecord[] = [];
-
   try {
-    for (const row of rows) {
+    const env = getEnv();
+    const body = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid request body",
+          issues: parsed.error.issues.map((i) => ({
+            path: i.path.join("."),
+            message: i.message,
+          })),
+        },
+        { status: 400 },
+      );
+    }
+    const { batch_id, rows } = parsed.data;
+
+    const supabase = getAdminClient();
+
+    let handle: Awaited<ReturnType<typeof launchBrowser>>;
+    try {
+      handle = await launchBrowser();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      const stack = e instanceof Error ? e.stack : undefined;
+      console.error("[generate] launchBrowser failed:", msg, stack);
+      return NextResponse.json(
+        {
+          error: `Browser launch failed: ${msg}`,
+          stage: "launchBrowser",
+          serverless: !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME,
+        },
+        { status: 500 },
+      );
+    }
+
+    const generated: SuccessRecord[] = [];
+    const failures: FailureRecord[] = [];
+
+    try {
+      for (const row of rows) {
       try {
         const totals = computeTotals(row.subjects);
         const cls = row.registry_class || row.class;
@@ -160,9 +178,18 @@ export async function POST(req: Request) {
         });
       }
     }
-  } finally {
-    await handle.close().catch(() => undefined);
-  }
+    } finally {
+      await handle.close().catch(() => undefined);
+    }
 
-  return NextResponse.json({ generated, failures });
+    return NextResponse.json({ generated, failures });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    const stack = e instanceof Error ? e.stack : undefined;
+    console.error("[generate] handler failed:", msg, stack);
+    return NextResponse.json(
+      { error: msg, stage: "handler", stack },
+      { status: 500 },
+    );
+  }
 }
