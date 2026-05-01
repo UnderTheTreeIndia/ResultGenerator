@@ -123,10 +123,10 @@ table.subjects th.r, table.subjects td.r { text-align: right; }
       <div class="title">Result Cum Certificate</div>
       <div class="subtitle">${examType} Examination &middot; ${academicYearLabel}</div>
     </div>
-    <div class="ornament">&#9670;</div>
+    <div class="ornament">&bull;</div>
     <div class="award-line">This certificate is proudly awarded to</div>
     <div class="name">${studentName}</div>
-    <div class="meta">Class ${className}${section ? ` &middot; Section ${section}` : ""} &middot; Enrollment ${enrollment}</div>
+    <div class="meta">Class ${className} &middot; Enrollment ${enrollment}</div>
     <table class="subjects">
       <thead><tr><th>Subject</th><th class="r">Grade</th></tr></thead>
       <tbody>${subjectRows}</tbody>
