@@ -13,7 +13,7 @@ import { renderCertificateHtml } from "@/lib/certificate/renderHtml";
 import { launchBrowser, renderPdf } from "@/lib/certificate/pdf";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const RowSchema = z.object({
   name: z.string().min(1),

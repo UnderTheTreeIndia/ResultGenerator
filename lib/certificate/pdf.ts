@@ -3,7 +3,7 @@ import chromium from "@sparticuz/chromium-min";
 
 const CHROMIUM_PACK_URL =
   process.env.CHROMIUM_PACK_URL ||
-  "https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar";
+  "https://github.com/Sparticuz/chromium/releases/download/v148.0.0/chromium-v148.0.0-pack.x64.tar";
 
 export interface BrowserHandle {
   browser: Browser;
@@ -38,9 +38,8 @@ export async function launchBrowser(): Promise<BrowserHandle> {
   if (isServerless()) {
     browser = (await puppeteer.launch({
       args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(CHROMIUM_PACK_URL),
-      headless: chromium.headless,
+      headless: true,
     })) as unknown as Browser;
   } else {
     const exec = await findLocalChrome();

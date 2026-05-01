@@ -13,13 +13,13 @@
     "render:smoke": "tsx scripts/render-smoke.ts"
   },
   "dependencies": {
-    "@sparticuz/chromium-min": "^131.0.1",
+    "@sparticuz/chromium-min": "^148.0.0",
     "@supabase/supabase-js": "^2.45.0",
     "archiver": "^7.0.1",
     "iron-session": "^8.0.4",
     "next": "16.2.4",
     "papaparse": "^5.4.1",
-    "puppeteer-core": "^23.10.4",
+    "puppeteer-core": "^24.42.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "server-only": "^0.0.1",
