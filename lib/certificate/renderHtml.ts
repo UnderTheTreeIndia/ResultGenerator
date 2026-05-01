@@ -77,6 +77,7 @@ export function renderCertificateHtml(p: CertificateProps): string {
 <meta charset="utf-8" />
 <title>Result Cum Certificate — ${studentName}</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@400;700&display=swap');
 @page { size: A4; margin: 0; }
 html, body { margin: 0; padding: 0; background: #FBF7EE; font-family: Georgia, 'Times New Roman', serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .page { width: 210mm; height: 297mm; background: #FBF7EE; color: #2A2A2A; position: relative; overflow: hidden; }
@@ -122,7 +123,7 @@ table.subjects th.r, table.subjects td.r { text-align: right; }
       <div class="title">Result Cum Certificate</div>
       <div class="subtitle">${examType} Examination &middot; ${academicYearLabel}</div>
     </div>
-    <div class="ornament">&#10086;</div>
+    <div class="ornament">&#9670;</div>
     <div class="award-line">This certificate is proudly awarded to</div>
     <div class="name">${studentName}</div>
     <div class="meta">Class ${className}${section ? ` &middot; Section ${section}` : ""} &middot; Enrollment ${enrollment}</div>
