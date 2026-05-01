@@ -62,7 +62,8 @@ export default async function VerifyPage({
   const subjectGrades = Array.isArray(r.subjects_json)
     ? r.subjects_json.map((s) => ({ subject: s.subject, grade: s.grade }))
     : [];
-  const issued = new Date(r.created_at).toLocaleDateString(undefined, {
+  const issued = new Date(r.created_at).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     year: "numeric",
     month: "long",
     day: "numeric",

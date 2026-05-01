@@ -122,7 +122,11 @@ export default async function AdminHome() {
                       </div>
                       <div className="text-gray-700">
                         {b.count} certificate{b.count === 1 ? "" : "s"} &middot;{" "}
-                        {new Date(b.created_at).toLocaleString()}
+                        {new Date(b.created_at).toLocaleString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
                       </div>
                     </div>
                     <Link

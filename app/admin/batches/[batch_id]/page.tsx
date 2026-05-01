@@ -43,7 +43,11 @@ export default async function BatchDetail({
   if (!data || data.length === 0) notFound();
 
   const rows = data as ResultRow[];
-  const created = new Date(rows[0].created_at).toLocaleString();
+  const created = new Date(rows[0].created_at).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
