@@ -1,7 +1,9 @@
 /**
- * Deletes all rows from the `results` table and all PDF files from Storage.
+ * Deletes rows from the `results` table and their PDF files from Storage.
  *
- * Usage: npx tsx scripts/cleanup-results.ts
+ * Usage:
+ *   npx tsx scripts/cleanup-results.ts              # delete ALL results
+ *   npx tsx scripts/cleanup-results.ts --class 3rd  # delete only Class 3rd
  *
  * Reads credentials from .env.local in the project root.
  */
@@ -26,6 +28,12 @@ function loadEnvLocal() {
   }
 }
 
+// Parse --class <value> from argv
+function parseClassFilter(): string | null {
+  const idx = process.argv.indexOf("--class");
+  return idx !== -1 ? (process.argv[idx + 1] ?? null) : null;
+}
+
 loadEnvLocal();
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -41,7 +49,32 @@ const supabase = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-async function deleteStorageFiles() {
+async function deleteStorageFilesForRows(
+  rows: { pdf_url: string | null }[],
+): Promise<number> {
+  const paths: string[] = [];
+  for (const row of rows) {
+    if (!row.pdf_url) continue;
+    try {
+      const u = new URL(row.pdf_url);
+      const prefix = `/storage/v1/object/public/${bucket}/`;
+      if (u.pathname.startsWith(prefix)) {
+        paths.push(u.pathname.slice(prefix.length));
+      }
+    } catch {
+      // skip malformed URLs
+    }
+  }
+  if (paths.length === 0) return 0;
+  const { error } = await supabase.storage.from(bucket).remove(paths);
+  if (error) {
+    console.error("Storage delete error:", error.message);
+    return 0;
+  }
+  return paths.length;
+}
+
+async function deleteAllStorageFiles(): Promise<number> {
   let totalDeleted = 0;
   let offset = 0;
   const limit = 100;
@@ -51,69 +84,74 @@ async function deleteStorageFiles() {
       .from(bucket)
       .list("", { limit, offset });
 
-    if (error) {
-      console.error("Storage list error:", error.message);
-      break;
-    }
+    if (error) { console.error("Storage list error:", error.message); break; }
     if (!files || files.length === 0) break;
 
-    // Each top-level entry is a folder (batch_id). List files inside each.
     const allPaths: string[] = [];
     for (const folder of files) {
       const { data: inner, error: innerErr } = await supabase.storage
         .from(bucket)
         .list(folder.name, { limit: 1000 });
-
-      if (innerErr) {
-        console.error(`List error for folder ${folder.name}:`, innerErr.message);
-        continue;
-      }
-      for (const f of inner ?? []) {
-        allPaths.push(`${folder.name}/${f.name}`);
-      }
+      if (innerErr) { console.error(`List error for ${folder.name}:`, innerErr.message); continue; }
+      for (const f of inner ?? []) allPaths.push(`${folder.name}/${f.name}`);
     }
 
     if (allPaths.length > 0) {
       const { error: rmErr } = await supabase.storage.from(bucket).remove(allPaths);
-      if (rmErr) {
-        console.error("Storage delete error:", rmErr.message);
-      } else {
-        totalDeleted += allPaths.length;
-        console.log(`  Deleted ${allPaths.length} file(s) from storage.`);
-      }
+      if (rmErr) console.error("Storage delete error:", rmErr.message);
+      else { totalDeleted += allPaths.length; console.log(`  Deleted ${allPaths.length} file(s) from storage.`); }
     }
 
     if (files.length < limit) break;
     offset += limit;
   }
-
   return totalDeleted;
 }
 
-async function deleteResultRows() {
-  // Delete all rows — Supabase requires a filter, so we use neq on a uuid column
-  const { error, count } = await supabase
-    .from("results")
-    .delete({ count: "exact" })
-    .neq("id", "00000000-0000-0000-0000-000000000000");
-
-  if (error) {
-    console.error("Results delete error:", error.message);
-    return 0;
-  }
-  return count ?? 0;
-}
-
 (async () => {
-  console.log("Cleaning up results…\n");
+  const classFilter = parseClassFilter();
 
-  console.log("Step 1: Deleting PDF files from storage bucket:", bucket);
-  const filesDeleted = await deleteStorageFiles();
-  console.log(`  Total storage files deleted: ${filesDeleted}\n`);
+  if (classFilter) {
+    console.log(`Cleaning up results for class "${classFilter}"…\n`);
 
-  console.log("Step 2: Deleting all rows from results table");
-  const rowsDeleted = await deleteResultRows();
-  console.log(`  Total result rows deleted: ${rowsDeleted}\n`);
+    // Fetch matching rows to get their pdf_urls
+    const { data: rows, error: fetchErr } = await supabase
+      .from("results")
+      .select("id, pdf_url, class")
+      .ilike("class", classFilter);
 
-  console.log("Done.");
+    if (fetchErr) { console.error("Fetch error:", fetchErr.message); process.exit(1); }
+    if (!rows || rows.length === 0) { console.log("No results found for that class."); process.exit(0); }
+
+    console.log(`Found ${rows.length} result(s): ${rows.map((r) => r.class).join(", ")}`);
+
+    console.log("\nStep 1: Deleting PDF files from storage…");
+    const filesDeleted = await deleteStorageFilesForRows(rows);
+    console.log(`  Deleted ${filesDeleted} file(s).\n`);
+
+    console.log("Step 2: Deleting rows from results table…");
+    const { error: delErr, count } = await supabase
+      .from("results")
+      .delete({ count: "exact" })
+      .ilike("class", classFilter);
+    if (delErr) console.error("Delete error:", delErr.message);
+    else console.log(`  Deleted ${count} row(s).`);
+
+  } else {
+    console.log("Cleaning up ALL results…\n");
+
+    console.log("Step 1: Deleting PDF files from storage bucket:", bucket);
+    const filesDeleted = await deleteAllStorageFiles();
+    console.log(`  Total storage files deleted: ${filesDeleted}\n`);
+
+    console.log("Step 2: Deleting all rows from results table…");
+    const { error, count } = await supabase
+      .from("results")
+      .delete({ count: "exact" })
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) console.error("Results delete error:", error.message);
+    else console.log(`  Total result rows deleted: ${count}`);
+  }
+
+  console.log("\nDone.");
 })();
