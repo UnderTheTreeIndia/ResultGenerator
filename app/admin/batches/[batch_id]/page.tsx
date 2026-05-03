@@ -123,6 +123,12 @@ export default async function BatchDetail({
                     >
                       Verify
                     </Link>
+                    <Link
+                      href={`/admin/results/${r.id}/edit`}
+                      className="text-utt-gold underline"
+                    >
+                      Edit
+                    </Link>
                   </div>
                 </td>
               </tr>
