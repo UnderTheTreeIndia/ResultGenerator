@@ -26,26 +26,50 @@ export async function GET(
 
   const yearMatch = (data.certificate_id as string).match(/^UTT-(\d{4})-/);
   const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-  const subjects = (
+
+  // Query param overrides
+  const qName = url.searchParams.get("name");
+  const qCls = url.searchParams.get("cls");
+  const qSubjects = url.searchParams.get("subjects");
+  const qOverallGrade = url.searchParams.get("overall_grade");
+  const qRemarksEn = url.searchParams.get("remarks_en");
+  const qRemarksHi = url.searchParams.get("remarks_hi");
+
+  const dbSubjects = (
     data.subjects_json as { subject: string; grade: string }[]
   ) ?? [];
 
+  let subjectGrades: { subject: string; grade: GradeBand }[];
+  if (qSubjects) {
+    try {
+      subjectGrades = (JSON.parse(qSubjects) as { subject: string; grade: string }[]).map(
+        (s) => ({ subject: s.subject, grade: s.grade as GradeBand }),
+      );
+    } catch {
+      subjectGrades = dbSubjects.map((s) => ({
+        subject: s.subject,
+        grade: s.grade as GradeBand,
+      }));
+    }
+  } else {
+    subjectGrades = dbSubjects.map((s) => ({
+      subject: s.subject,
+      grade: s.grade as GradeBand,
+    }));
+  }
+
   const html = renderCertificateHtml({
-    studentName: data.name as string,
-    className: data.class as string,
+    studentName: qName ?? (data.name as string),
+    className: qCls ?? (data.class as string),
     section: null,
     enrollment: data.enrollment as string,
     examType: data.exam_type as string,
     academicYearLabel: academicYearLabel(year),
     certificateId: data.certificate_id as string,
-    subjectGrades: subjects.map((s) => ({
-      subject: s.subject,
-      grade: s.grade as GradeBand,
-    })),
-    overallGrade: (url.searchParams.get("overall_grade") ??
-      data.overall_grade) as GradeBand,
-    remarkEn: url.searchParams.get("remarks_en") ?? (data.remarks_en as string),
-    remarkHi: url.searchParams.get("remarks_hi") ?? (data.remarks_hi as string),
+    subjectGrades,
+    overallGrade: (qOverallGrade ?? data.overall_grade) as GradeBand,
+    remarkEn: qRemarksEn ?? (data.remarks_en as string),
+    remarkHi: qRemarksHi ?? (data.remarks_hi as string),
   });
 
   return new NextResponse(html, {

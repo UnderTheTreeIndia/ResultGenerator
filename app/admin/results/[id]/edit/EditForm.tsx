@@ -4,6 +4,12 @@ import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { GRADE_BANDS } from "@/lib/grading/grade";
 
+interface Subject {
+  subject: string;
+  grade: string;
+  mark: number | null;
+}
+
 interface ResultData {
   id: string;
   certificate_id: string;
@@ -16,9 +22,15 @@ interface ResultData {
   remarks_hi: string;
   batch_id: string;
   pdf_url: string | null;
+  subjects_json: Subject[];
 }
 
 export default function EditForm({ result }: { result: ResultData }) {
+  const [name, setName] = useState(result.name);
+  const [cls, setCls] = useState(result.class);
+  const [subjects, setSubjects] = useState<Subject[]>(
+    (result.subjects_json ?? []).map((s) => ({ ...s })),
+  );
   const [overallGrade, setOverallGrade] = useState(result.overall_grade);
   const [remarksEn, setRemarksEn] = useState(result.remarks_en);
   const [remarksHi, setRemarksHi] = useState(result.remarks_hi);
@@ -28,14 +40,26 @@ export default function EditForm({ result }: { result: ResultData }) {
 
   const basePreviewUrl = `/api/admin/results/${result.id}/html`;
 
+  const setSubjectGrade = (idx: number, grade: string) => {
+    setSubjects((prev) =>
+      prev.map((s, i) => (i === idx ? { ...s, grade } : s)),
+    );
+  };
+
   const refreshPreview = useCallback(() => {
     if (!iframeRef.current) return;
     const url = new URL(basePreviewUrl, window.location.origin);
+    url.searchParams.set("name", name);
+    url.searchParams.set("cls", cls);
+    url.searchParams.set(
+      "subjects",
+      JSON.stringify(subjects.map((s) => ({ subject: s.subject, grade: s.grade }))),
+    );
+    url.searchParams.set("overall_grade", overallGrade);
     url.searchParams.set("remarks_en", remarksEn);
     url.searchParams.set("remarks_hi", remarksHi);
-    url.searchParams.set("overall_grade", overallGrade);
     iframeRef.current.src = url.toString();
-  }, [basePreviewUrl, remarksEn, remarksHi, overallGrade]);
+  }, [basePreviewUrl, name, cls, subjects, overallGrade, remarksEn, remarksHi]);
 
   const saveAndRerender = async () => {
     setStatus("saving");
@@ -45,6 +69,9 @@ export default function EditForm({ result }: { result: ResultData }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          name,
+          cls,
+          subjects_json: subjects,
           remarks_en: remarksEn,
           remarks_hi: remarksHi,
           overall_grade: overallGrade,
@@ -78,8 +105,7 @@ export default function EditForm({ result }: { result: ResultData }) {
               Edit Certificate
             </h1>
             <p className="text-sm text-gray-600">
-              {result.name} &middot; Class {result.class} &middot;{" "}
-              {result.exam_type}
+              {result.enrollment} &middot; {result.exam_type}
             </p>
             <p className="font-mono text-xs text-gray-400">
               {result.certificate_id}
@@ -101,8 +127,64 @@ export default function EditForm({ result }: { result: ResultData }) {
       {/* Split panel */}
       <div className="flex gap-5">
         {/* Form panel */}
-        <aside className="w-72 shrink-0 space-y-4">
+        <aside className="w-80 shrink-0 space-y-4">
           <div className="rounded border border-utt-gold/20 bg-white p-4 space-y-4">
+
+            {/* Student info */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-utt-green mb-1.5">
+                Student Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded border border-utt-gold/40 bg-white px-3 py-2 text-sm outline-none focus:border-utt-green"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-utt-green mb-1.5">
+                Class
+              </label>
+              <input
+                type="text"
+                value={cls}
+                onChange={(e) => setCls(e.target.value)}
+                className="w-full rounded border border-utt-gold/40 bg-white px-3 py-2 text-sm outline-none focus:border-utt-green"
+              />
+            </div>
+
+            {/* Subject grades */}
+            {subjects.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-utt-green mb-2">
+                  Subject Grades
+                </label>
+                <div className="space-y-2">
+                  {subjects.map((s, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="flex-1 truncate text-sm text-gray-700">
+                        {s.subject}
+                      </span>
+                      <select
+                        value={s.grade}
+                        onChange={(e) => setSubjectGrade(i, e.target.value)}
+                        className="w-20 rounded border border-utt-gold/40 bg-white px-2 py-1.5 text-sm outline-none focus:border-utt-green"
+                      >
+                        {GRADE_BANDS.map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Overall grade */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-utt-green mb-1.5">
                 Overall Grade
@@ -120,6 +202,7 @@ export default function EditForm({ result }: { result: ResultData }) {
               </select>
             </div>
 
+            {/* Remarks */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-utt-green mb-1.5">
                 English Remark
@@ -127,7 +210,7 @@ export default function EditForm({ result }: { result: ResultData }) {
               <textarea
                 value={remarksEn}
                 onChange={(e) => setRemarksEn(e.target.value)}
-                rows={6}
+                rows={5}
                 className="w-full rounded border border-utt-gold/40 bg-white px-3 py-2 text-sm outline-none focus:border-utt-green resize-y"
               />
             </div>
@@ -139,7 +222,7 @@ export default function EditForm({ result }: { result: ResultData }) {
               <textarea
                 value={remarksHi}
                 onChange={(e) => setRemarksHi(e.target.value)}
-                rows={6}
+                rows={5}
                 className="w-full rounded border border-utt-gold/40 bg-white px-3 py-2 text-sm outline-none focus:border-utt-green resize-y"
                 lang="hi"
               />

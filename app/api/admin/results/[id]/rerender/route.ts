@@ -10,7 +10,16 @@ import type { GradeBand } from "@/lib/grading/grade";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+const SubjectSchema = z.object({
+  subject: z.string(),
+  grade: z.string(),
+  mark: z.number().nullable(),
+});
+
 const BodySchema = z.object({
+  name: z.string().min(1),
+  cls: z.string().min(1),
+  subjects_json: z.array(SubjectSchema),
   remarks_en: z.string().min(1),
   remarks_hi: z.string().min(1),
   overall_grade: z.string().min(1),
@@ -27,14 +36,15 @@ export async function POST(
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid body" }, { status: 400 });
     }
-    const { remarks_en, remarks_hi, overall_grade } = parsed.data;
+    const { name, cls, subjects_json, remarks_en, remarks_hi, overall_grade } =
+      parsed.data;
 
     const env = getEnv();
     const supabase = getAdminClient();
 
     const { data: result, error } = await supabase
       .from("results")
-      .select("*")
+      .select("certificate_id, enrollment, exam_type, pdf_url")
       .eq("id", id)
       .single();
 
@@ -44,19 +54,16 @@ export async function POST(
 
     const yearMatch = (result.certificate_id as string).match(/^UTT-(\d{4})-/);
     const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-    const subjects = (
-      result.subjects_json as { subject: string; grade: string }[]
-    ) ?? [];
 
     const html = renderCertificateHtml({
-      studentName: result.name as string,
-      className: result.class as string,
+      studentName: name,
+      className: cls,
       section: null,
       enrollment: result.enrollment as string,
       examType: result.exam_type as string,
       academicYearLabel: academicYearLabel(year),
       certificateId: result.certificate_id as string,
-      subjectGrades: subjects.map((s) => ({
+      subjectGrades: subjects_json.map((s) => ({
         subject: s.subject,
         grade: s.grade as GradeBand,
       })),
@@ -73,7 +80,6 @@ export async function POST(
       await handle.close().catch(() => undefined);
     }
 
-    // Derive object key from existing pdf_url, fall back to a safe path
     let objectKey: string;
     try {
       const urlObj = new URL(result.pdf_url as string);
@@ -92,7 +98,7 @@ export async function POST(
 
     const { error: updErr } = await supabase
       .from("results")
-      .update({ remarks_en, remarks_hi, overall_grade })
+      .update({ name, class: cls, subjects_json, remarks_en, remarks_hi, overall_grade })
       .eq("id", id);
     if (updErr) throw updErr;
 

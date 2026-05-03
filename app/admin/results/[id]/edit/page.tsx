@@ -15,7 +15,7 @@ export default async function EditResultPage({
   const { data, error } = await supabase
     .from("results")
     .select(
-      "id, certificate_id, name, enrollment, class, exam_type, overall_grade, remarks_en, remarks_hi, batch_id, pdf_url",
+      "id, certificate_id, name, enrollment, class, exam_type, overall_grade, remarks_en, remarks_hi, batch_id, pdf_url, subjects_json",
     )
     .eq("id", id)
     .single();
